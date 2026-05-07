@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 EXPOSE 8080
 
-CMD ["python3", "app/server.py"]
+CMD ["uvicorn", "fastapi-db.app.main:app", "--host", "0.0.0.0", "--port", "10000"]
