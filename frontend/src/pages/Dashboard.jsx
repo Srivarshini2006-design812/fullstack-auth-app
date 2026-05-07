@@ -6,7 +6,7 @@ function Dashboard() {
   const [todos, setTodos] = useState([]);
   const [title, setTitle] = useState("");
 
-  const API = "http://localhost:8000";
+  const API = "https://fullstack-auth-app-1kmt.onrender.com";
 
   useEffect(() => {
     fetchUsers();

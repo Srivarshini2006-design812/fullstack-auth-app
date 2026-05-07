@@ -1,25 +1,34 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-function Login() {
+function Login({ setToken }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
 
-  const API = "http://localhost:8000";
+  const API = "https://fullstack-auth-app-1kmt.onrender.com";
 
-  // AUTO LOGIN
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  const login = async () => {
+    try {
+      const res = await axios.post(
+        `${API}/login?name=${name}&password=${password}`
+      );
 
-    if (token) {
+      const token = res.data.access_token;
+
+      // save token
+      localStorage.setItem("token", token);
+      setToken(token);
+
+      alert("Login success");
       navigate("/dashboard");
+    } catch (err) {
+      alert("Login failed");
     }
-  }, []);
+  };
 
-  // REGISTER
   const register = async () => {
     try {
       await axios.post(`${API}/register`, {
@@ -27,94 +36,29 @@ function Login() {
         password,
       });
 
-      alert("Registration successful");
+      alert("Registered successfully");
     } catch (err) {
-      alert("Registration failed");
-    }
-  };
-
-  // LOGIN
-  const login = async () => {
-    try {
-      const res = await axios.post(
-        `${API}/login?name=${name}&password=${password}`
-      );
-
-      localStorage.setItem("token", res.data.access_token);
-
-      alert("Login successful");
-
-      navigate("/dashboard");
-    } catch (err) {
-      alert("Login failed");
+      alert("Register failed");
     }
   };
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        fontFamily: "Arial",
-      }}
-    >
-      <div
-        style={{
-          width: "300px",
-          padding: "30px",
-          border: "1px solid #ccc",
-          borderRadius: "10px",
-        }}
-      >
-        <h1>Auth App</h1>
+    <div>
+      <h1>Login</h1>
 
-        <input
-          type="text"
-          placeholder="Username"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginBottom: "15px",
-          }}
-        />
+      <input
+        placeholder="name"
+        onChange={(e) => setName(e.target.value)}
+      />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginBottom: "15px",
-          }}
-        />
+      <input
+        placeholder="password"
+        type="password"
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-        <button
-          onClick={register}
-          style={{
-            width: "100%",
-            padding: "10px",
-            marginBottom: "10px",
-          }}
-        >
-          Register
-        </button>
-
-        <button
-          onClick={login}
-          style={{
-            width: "100%",
-            padding: "10px",
-          }}
-        >
-          Login
-        </button>
-      </div>
+      <button onClick={login}>Login</button>
+      <button onClick={register}>Register</button>
     </div>
   );
 }
