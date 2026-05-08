@@ -10,25 +10,28 @@ function Login({ setToken }) {
 
   const API = "https://fullstack-auth-app-1kmt.onrender.com";
 
+  // -------------------------
+  // LOGIN
+  // -------------------------
   const login = async () => {
     try {
-      const res = await axios.post(
-        `${API}/login?name=${name}&password=${password}`
-      );
+      const res = await axios.post(`${API}/login`, {
+        name,
+        password,
+      });
 
-      const token = res.data.access_token;
+      alert(res.data.message);
 
-      // save token
-      localStorage.setItem("token", token);
-      setToken(token);
-
-      alert("Login success");
       navigate("/dashboard");
     } catch (err) {
+      console.log(err);
       alert("Login failed");
     }
   };
 
+  // -------------------------
+  // REGISTER
+  // -------------------------
   const register = async () => {
     try {
       await axios.post(`${API}/register`, {
@@ -38,27 +41,56 @@ function Login({ setToken }) {
 
       alert("Registered successfully");
     } catch (err) {
+      console.log(err);
       alert("Register failed");
     }
   };
 
   return (
-    <div>
+    <div style={{ padding: "30px" }}>
       <h1>Login</h1>
 
       <input
         placeholder="name"
+        value={name}
         onChange={(e) => setName(e.target.value)}
+        style={{
+          display: "block",
+          marginBottom: "10px",
+          padding: "10px",
+        }}
       />
 
       <input
         placeholder="password"
         type="password"
+        value={password}
         onChange={(e) => setPassword(e.target.value)}
+        style={{
+          display: "block",
+          marginBottom: "10px",
+          padding: "10px",
+        }}
       />
 
-      <button onClick={login}>Login</button>
-      <button onClick={register}>Register</button>
+      <button
+        onClick={login}
+        style={{
+          marginRight: "10px",
+          padding: "10px 20px",
+        }}
+      >
+        Login
+      </button>
+
+      <button
+        onClick={register}
+        style={{
+          padding: "10px 20px",
+        }}
+      >
+        Register
+      </button>
     </div>
   );
 }
