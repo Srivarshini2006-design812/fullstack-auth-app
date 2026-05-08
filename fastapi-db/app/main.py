@@ -6,9 +6,9 @@ import os
 
 app = FastAPI()
 
-# ----------------------------
+# -------------------------
 # CORS
-# ----------------------------
+# -------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -20,15 +20,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ----------------------------
-# DATABASE CONNECTION
-# ----------------------------
+# -------------------------
+# DATABASE
+# -------------------------
 def get_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
-# ----------------------------
+# -------------------------
 # MODELS
-# ----------------------------
+# -------------------------
 class User(BaseModel):
     name: str
     password: str
@@ -36,16 +36,16 @@ class User(BaseModel):
 class Todo(BaseModel):
     text: str
 
-# ----------------------------
+# -------------------------
 # HOME
-# ----------------------------
+# -------------------------
 @app.get("/")
 def home():
     return {"message": "Backend running 🚀"}
 
-# ----------------------------
+# -------------------------
 # REGISTER
-# ----------------------------
+# -------------------------
 @app.post("/register")
 def register(user: User):
     conn = get_conn()
@@ -71,9 +71,9 @@ def register(user: User):
 
     return {"message": "User registered successfully"}
 
-# ----------------------------
+# -------------------------
 # LOGIN
-# ----------------------------
+# -------------------------
 @app.post("/login")
 def login(user: User):
     conn = get_conn()
@@ -84,19 +84,19 @@ def login(user: User):
         (user.name, user.password)
     )
 
-    found = cur.fetchone()
+    existing_user = cur.fetchone()
 
     cur.close()
     conn.close()
 
-    if found:
+    if existing_user:
         return {"message": "Login successful"}
+    else:
+        return {"message": "Invalid username or password"}
 
-    return {"message": "Invalid credentials"}
-
-# ----------------------------
+# -------------------------
 # GET USERS
-# ----------------------------
+# -------------------------
 @app.get("/users")
 def get_users():
     conn = get_conn()
@@ -109,16 +109,11 @@ def get_users():
     cur.close()
     conn.close()
 
-    return {
-        "users": [
-            {"id": u[0], "name": u[1]}
-            for u in users
-        ]
-    }
+    return {"users": users}
 
-# ----------------------------
+# -------------------------
 # CREATE TODO
-# ----------------------------
+# -------------------------
 @app.post("/todos")
 def create_todo(todo: Todo):
     conn = get_conn()
@@ -143,24 +138,19 @@ def create_todo(todo: Todo):
 
     return {"message": "Todo created"}
 
-# ----------------------------
+# -------------------------
 # GET TODOS
-# ----------------------------
+# -------------------------
 @app.get("/todos")
 def get_todos():
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("SELECT id, text FROM todos")
+    cur.execute("SELECT * FROM todos")
 
     todos = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    return {
-        "todos": [
-            {"id": t[0], "text": t[1]}
-            for t in todos
-        ]
-    }
+    return {"todos": todos}
