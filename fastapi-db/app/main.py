@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import psycopg2
 import os
 
 app = FastAPI()
 
-# ✅ CORS FIX (CRITICAL FOR VERCEL + RENDER)
+# ----------------------------
+# CORS
+# ----------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -17,45 +20,147 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ DB CONNECTION (CLOUD SAFE)
+# ----------------------------
+# DATABASE CONNECTION
+# ----------------------------
 def get_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
+# ----------------------------
+# MODELS
+# ----------------------------
+class User(BaseModel):
+    name: str
+    password: str
 
+class Todo(BaseModel):
+    text: str
+
+# ----------------------------
+# HOME
+# ----------------------------
 @app.get("/")
 def home():
     return {"message": "Backend running 🚀"}
 
-
-# -------------------------
-# REGISTER (example fix)
-# -------------------------
+# ----------------------------
+# REGISTER
+# ----------------------------
 @app.post("/register")
-def register():
+def register(user: User):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("SELECT 1")  # replace with real insert later
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name TEXT,
+            password TEXT
+        )
+    """)
+
+    cur.execute(
+        "INSERT INTO users (name, password) VALUES (%s, %s)",
+        (user.name, user.password)
+    )
+
     conn.commit()
 
     cur.close()
     conn.close()
 
-    return {"message": "Register success"}
+    return {"message": "User registered successfully"}
 
-
-# -------------------------
-# LOGIN (example fix)
-# -------------------------
+# ----------------------------
+# LOGIN
+# ----------------------------
 @app.post("/login")
-def login():
+def login(user: User):
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("SELECT 1")  # replace with real auth later
+    cur.execute(
+        "SELECT * FROM users WHERE name=%s AND password=%s",
+        (user.name, user.password)
+    )
+
+    found = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if found:
+        return {"message": "Login successful"}
+
+    return {"message": "Invalid credentials"}
+
+# ----------------------------
+# GET USERS
+# ----------------------------
+@app.get("/users")
+def get_users():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, name FROM users")
+
+    users = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return {
+        "users": [
+            {"id": u[0], "name": u[1]}
+            for u in users
+        ]
+    }
+
+# ----------------------------
+# CREATE TODO
+# ----------------------------
+@app.post("/todos")
+def create_todo(todo: Todo):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS todos (
+            id SERIAL PRIMARY KEY,
+            text TEXT
+        )
+    """)
+
+    cur.execute(
+        "INSERT INTO todos (text) VALUES (%s)",
+        (todo.text,)
+    )
+
     conn.commit()
 
     cur.close()
     conn.close()
 
-    return {"message": "Login success"}
+    return {"message": "Todo created"}
+
+# ----------------------------
+# GET TODOS
+# ----------------------------
+@app.get("/todos")
+def get_todos():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT id, text FROM todos")
+
+    todos = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return {
+        "todos": [
+            {"id": t[0], "text": t[1]}
+            for t in todos
+        ]
+    }
