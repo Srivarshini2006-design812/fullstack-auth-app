@@ -13,7 +13,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://fullstack-auth-app-swart.vercel.app",
-        "http://localhost:3000"
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -21,20 +21,26 @@ app.add_middleware(
 )
 
 # -------------------------
-# DATABASE
+# DATABASE CONNECTION
 # -------------------------
 def get_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"))
 
+
 # -------------------------
-# MODELS
+# USER MODEL
 # -------------------------
 class User(BaseModel):
     name: str
     password: str
 
+
+# -------------------------
+# TODO MODEL
+# -------------------------
 class Todo(BaseModel):
-    text: str
+    task: str
+
 
 # -------------------------
 # HOME
@@ -43,114 +49,176 @@ class Todo(BaseModel):
 def home():
     return {"message": "Backend running 🚀"}
 
+
 # -------------------------
 # REGISTER
 # -------------------------
 @app.post("/register")
 def register(user: User):
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            name TEXT,
-            password TEXT
+        # create users table if not exists
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT,
+                password TEXT
+            )
+        """)
+
+        conn.commit()
+
+        # insert user
+        cur.execute(
+            "INSERT INTO users (name, password) VALUES (%s, %s)",
+            (user.name, user.password)
         )
-    """)
 
-    cur.execute(
-        "INSERT INTO users (name, password) VALUES (%s, %s)",
-        (user.name, user.password)
-    )
+        conn.commit()
 
-    conn.commit()
+        cur.close()
+        conn.close()
 
-    cur.close()
-    conn.close()
+        return {"message": "User registered successfully"}
 
-    return {"message": "User registered successfully"}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # -------------------------
 # LOGIN
 # -------------------------
 @app.post("/login")
 def login(user: User):
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute(
-        "SELECT * FROM users WHERE name=%s AND password=%s",
-        (user.name, user.password)
-    )
+        cur.execute(
+            "SELECT * FROM users WHERE name=%s AND password=%s",
+            (user.name, user.password)
+        )
 
-    existing_user = cur.fetchone()
+        existing_user = cur.fetchone()
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
 
-    if existing_user:
-        return {"message": "Login successful"}
-    else:
-        return {"message": "Invalid username or password"}
+        if existing_user:
+            return {"message": "Login successful"}
+
+        return {"message": "Invalid credentials"}
+
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # -------------------------
 # GET USERS
 # -------------------------
 @app.get("/users")
 def get_users():
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("SELECT id, name FROM users")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT,
+                password TEXT
+            )
+        """)
 
-    users = cur.fetchall()
+        conn.commit()
 
-    cur.close()
-    conn.close()
+        cur.execute("SELECT id, name FROM users")
 
-    return {"users": users}
+        users = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return {
+            "users": [
+                {"id": user[0], "name": user[1]}
+                for user in users
+            ]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # -------------------------
 # CREATE TODO
 # -------------------------
 @app.post("/todos")
 def create_todo(todo: Todo):
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS todos (
-            id SERIAL PRIMARY KEY,
-            text TEXT
+        # create todos table
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS todos (
+                id SERIAL PRIMARY KEY,
+                task TEXT
+            )
+        """)
+
+        conn.commit()
+
+        # insert todo
+        cur.execute(
+            "INSERT INTO todos (task) VALUES (%s)",
+            (todo.task,)
         )
-    """)
 
-    cur.execute(
-        "INSERT INTO todos (text) VALUES (%s)",
-        (todo.text,)
-    )
+        conn.commit()
 
-    conn.commit()
+        cur.close()
+        conn.close()
 
-    cur.close()
-    conn.close()
+        return {"message": "Todo created successfully"}
 
-    return {"message": "Todo created"}
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # -------------------------
 # GET TODOS
 # -------------------------
 @app.get("/todos")
 def get_todos():
-    conn = get_conn()
-    cur = conn.cursor()
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
 
-    cur.execute("SELECT * FROM todos")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS todos (
+                id SERIAL PRIMARY KEY,
+                task TEXT
+            )
+        """)
 
-    todos = cur.fetchall()
+        conn.commit()
 
-    cur.close()
-    conn.close()
+        cur.execute("SELECT * FROM todos")
 
-    return {"todos": todos}
+        todos = cur.fetchall()
+
+        cur.close()
+        conn.close()
+
+        return {
+            "todos": [
+                {"id": todo[0], "task": todo[1]}
+                for todo in todos
+            ]
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
